@@ -1,0 +1,135 @@
+#define DEBUG 1
+
+#define PULSE_PIN   25
+#define DIR_PIN     26
+// #define ENABLE_PIN  32
+
+#define PULSE_PER_REV 1600
+#define REV_PER_CM 1
+
+#define SEND_PULSE pulseState = !pulseState; digitalWrite(PULSE_PIN, pulseState)
+
+#include <Arduino.h>
+
+// TaskHandle_t Task1;
+// TaskHandle_t Task2;
+
+
+bool pulseState = false;
+uint8_t acceleration  = 100;  // Number of PULSES to accelerate
+uint8_t deceleration  = 100;  // Number of PULSES to decelerate
+uint8_t maxSpeedDelay = 1;    // Minimum delay between steps (max speed)
+uint8_t minSpeedDelay = 100;   // Maximum delay between steps (min speed)
+uint32_t currentPosition = 0;
+uint32_t delayTime = 0;
+uint32_t activeTime = 0;
+
+
+void movemotor(uint32_t newPosition) {
+  if (DEBUG) { Serial.print("\t  New Position:" + String (newPosition));}
+  int32_t steps = newPosition - currentPosition;
+  if (DEBUG) { Serial.println("  \t Steps:" + String (steps));}
+  currentPosition = newPosition;
+  if (steps > 0) { digitalWrite(DIR_PIN, HIGH);} 
+  else           { digitalWrite(DIR_PIN, LOW); }
+  steps = abs(steps);                         // Make sure steps is positive
+  steps = steps * PULSE_PER_REV * REV_PER_CM; // Convert steps to pulses
+
+  for (int i = 0; i < steps; i++) {
+    int delayTime = maxSpeedDelay;
+    if (i < acceleration) {
+      delayTime = minSpeedDelay - (i * (minSpeedDelay - maxSpeedDelay) / acceleration);
+    } else if (i >= steps - deceleration) {
+      delayTime = minSpeedDelay - ((steps - i - 1) * (minSpeedDelay - maxSpeedDelay) / deceleration);
+    }
+    digitalWrite(PULSE_PIN, HIGH);
+    delayMicroseconds(delayTime*100);
+    digitalWrite(PULSE_PIN, LOW);
+    delayMicroseconds(delayTime*100);
+  }
+}
+
+void readSerial() {
+  if (Serial.available()) {
+    String incoming = Serial.readStringUntil('\n');
+    incoming.trim();
+    if (incoming.startsWith("P")) {
+      uint16_t pos = incoming.substring(1).toInt();
+      if (DEBUG) { Serial.print("Current Position:" + String (currentPosition));}
+      movemotor(pos);
+    }  
+  }
+}
+
+
+
+void motorControlHandler(){
+  if (micros() - activeTime > delayTime) {
+    SEND_PULSE;
+    activeTime = micros();
+  }
+}
+
+// void core_zero_loop() {
+ 
+// } 
+// void Task1code( void * pvParameters ){ for(;;){ core_zero_loop(); yield();} }
+// void Task2code( void * pvParameters ){ for(;;){yield();} }
+
+// void dual_core_setup()
+// {
+//   delay(500);
+//   xTaskCreatePinnedToCore(Task1code,"Task1",10000,NULL,1,&Task1,0);                       
+//   delay(500); 
+//   xTaskCreatePinnedToCore(Task2code,"Task2",10000,NULL,1,&Task2,1);      
+//   delay(500); 
+// }
+
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(PULSE_PIN, OUTPUT);
+  pinMode(DIR_PIN, OUTPUT);
+  // pinMode(ENABLE_PIN, OUTPUT);
+  // digitalWrite(ENABLE_PIN, HIGH); // Enable the motor driver
+
+  // dual_core_setup();
+}
+
+
+
+void loop() {
+  readSerial();
+}
+
+
+// #include <Arduino.h>
+// #define stepPin 25
+// #define dirPin  26
+ 
+// void setup() {
+//   // Sets the two pins as Outputs
+//   pinMode(stepPin,OUTPUT); 
+//   pinMode(dirPin,OUTPUT);
+// }
+// void loop() {
+//   digitalWrite(dirPin,HIGH); // Enables the motor to move in a particular direction
+//   // Makes 200 pulses for making one full cycle rotation
+//   for(int x = 0; x < 6400; x++) {
+//     digitalWrite(stepPin,HIGH); 
+//     delayMicroseconds(300);    // by changing this time delay between the steps we can change the rotation speed
+//     digitalWrite(stepPin,LOW); 
+//     delayMicroseconds(300); 
+//   }
+//   delay(1000); // One second delay
+  
+//   digitalWrite(dirPin,LOW); //Changes the rotations direction
+//   // Makes 400 pulses for making two full cycle rotation
+//   for(int x = 0; x < 6400; x++) {
+//     digitalWrite(stepPin,HIGH);
+//     delayMicroseconds(300);
+//     digitalWrite(stepPin,LOW);
+//     delayMicroseconds(300);
+//   }
+//   delay(1000);
+// }
