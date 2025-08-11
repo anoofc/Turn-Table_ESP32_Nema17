@@ -3,30 +3,30 @@
 #define DEBUG       1     // Set to 1 to enable debug output, 0 to disable
 
 // Pins
-#define PULSE_PIN 25
-#define DIR_PIN 26
+#define PULSE_PIN   25
+#define DIR_PIN     26
 // #define ENABLE_PIN 32
 
 // Motion constants (adjust to your mechanics/driver)
-#define PULSE_PER_REV 18
-#define REV_PER_CM 1
+#define PULSE_PER_REV   18
+#define REV_PER_CM      1
 
 // Linear motion control variables
-float currentVelocity = 0.0;        // Current velocity in steps/second
-float maxVelocity = 10000.0;         // Maximum velocity in steps/second
-float accelerationRate = 500.0;     // Acceleration in steps/second²
-float decelerationRate = 500.0;     // Deceleration in steps/second²
-uint32_t velocityUpdateInterval = 1000; // Microseconds between velocity updates
+float currentVelocity   = 0.0;              // Current velocity in steps/second
+float maxVelocity       = 10000.0;          // Maximum velocity in steps/second
+float accelerationRate  = 500.0;            // Acceleration in steps/second²
+float decelerationRate  = 500.0;            // Deceleration in steps/second²
+uint32_t velocityUpdateInterval = 1000;     // Microseconds between velocity updates
 uint32_t lastVelocityUpdate = 0;
-uint32_t stepInterval = 0;           // Microseconds between step pulses
-uint32_t lastStepTime = 0;
+uint32_t stepInterval   = 0;                // Microseconds between step pulses
+uint32_t lastStepTime   = 0;
 
 // Motion phases
 enum MotionPhase {
   PHASE_IDLE,
   PHASE_ACCELERATING,
   PHASE_CONSTANT_VELOCITY,
-  PHASE_DECELERATING
+  PHASE_DECELERATING,
 };
 
 static MotionPhase currentPhase = PHASE_IDLE;
@@ -36,11 +36,11 @@ uint32_t currentPosition = 0;
 uint32_t targetPosition = 0;
 
 // Limits and safety clamps
-const uint32_t MAX_POS_CM = 100000; // optional clamp
-const float MIN_VELOCITY = 50.0;    // Minimum velocity in steps/second
-const float MAX_VELOCITY_LIMIT = 5000.0; // Maximum allowed velocity
-const float MIN_ACCELERATION = 10.0; // Minimum acceleration
-const float MAX_ACCELERATION = 10000.0; // Maximum acceleration
+const uint32_t MAX_POS_CM = 100000;       // optional clamp
+const float MIN_VELOCITY = 50.0;          // Minimum velocity in steps/second
+const float MAX_VELOCITY_LIMIT = 5000.0;  // Maximum allowed velocity
+const float MIN_ACCELERATION = 10.0;      // Minimum acceleration
+const float MAX_ACCELERATION = 10000.0;   // Maximum acceleration
 
 // Calculate motion profile phases
 static void calculateMotionProfile(uint32_t totalSteps, uint32_t &accelSteps, 
@@ -87,15 +87,15 @@ static void calculateMotionProfile(uint32_t totalSteps, uint32_t &accelSteps,
 
 // Enhanced linear acceleration motor control
 static void linearMotorControlHandler() {
-  static int32_t stepsRemaining = 0;
-  static int32_t stepsDone = 0;
-  static int8_t direction = 1;
-  static bool initialized = false;
-  static bool pulseLevel = LOW;
-  static uint32_t accelSteps = 0;
-  static uint32_t constantSteps = 0;
-  static uint32_t decelSteps = 0;
-  static float moveMaxVelocity = 0; // Store original max velocity for move
+  static int32_t  stepsRemaining = 0;
+  static int32_t  stepsDone      = 0;
+  static int8_t   direction      = 1;
+  static bool     initialized    = false;
+  static bool     pulseLevel     = LOW;
+  static uint32_t accelSteps     = 0;
+  static uint32_t constantSteps  = 0;
+  static uint32_t decelSteps     = 0;
+  static float    moveMaxVelocity = 0; // Store original max velocity for move
   
   // Initialize new move
   if (!initialized) {
@@ -208,11 +208,11 @@ static void linearMotorControlHandler() {
   
   // Move complete
   if (stepsRemaining <= 0) {
-    initialized = false;
-    currentPosition = targetPosition;
-    currentVelocity = 0.0;
-    currentPhase = PHASE_IDLE;
-    maxVelocity = moveMaxVelocity; // Restore original max velocity
+    initialized       = false;
+    currentPosition   = targetPosition;
+    currentVelocity   = 0.0;
+    currentPhase      = PHASE_IDLE; // Corrected assignment operator
+    maxVelocity       = moveMaxVelocity; // Restore original max velocity
     digitalWrite(PULSE_PIN, LOW);
     
     if (DEBUG) {
@@ -267,9 +267,9 @@ static void enhancedReadSerial() {
   
   // Emergency stop
   if (incoming.equals("S") || incoming.equals("s")) {
-    targetPosition = currentPosition; // Stop immediately
+    targetPosition  = currentPosition; // Stop immediately
     currentVelocity = 0.0;
-    currentPhase = PHASE_IDLE;
+    currentPhase    = PHASE_IDLE;
     digitalWrite(PULSE_PIN, LOW);
     Serial.println("EMERGENCY STOP - Motion halted");
     return;
@@ -426,8 +426,4 @@ void setup() {
 void loop() {
   enhancedReadSerial();
   linearMotorControlHandler();
-  
-  // Optional: Add a small delay to prevent overwhelming the system
-  // This is generally not needed but can help with stability on some systems
-  // delayMicroseconds(10);
 }
